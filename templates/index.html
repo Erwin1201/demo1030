@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <title>本地記事本</title>
+    <title>收納式記事本（垂直細項）</title>
     <style>
         body {
             font-family: "Noto Sans TC", sans-serif;
@@ -24,14 +24,57 @@
             cursor: pointer;
         }
 
-        textarea {
-            width: 100%;
-            height: 80vh;
-            font-size: 16px;
-            padding: 15px;
+        .editor {
+            padding: 20px;
+        }
+
+        /* 單一主項（垂直排列） */
+        .line {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 8px;
+        }
+
+        /* 主項的上半段（箭頭 + 輸入欄位） */
+        .line-header {
+            display: flex;
+            align-items: center;
+        }
+
+        .line-header button {
+            width: 28px;
+            height: 28px;
+            margin-right: 6px;
+            cursor: pointer;
             border: none;
-            resize: none;
-            outline: none;
+            background: transparent;
+            font-size: 18px;
+        }
+
+        .line-header input {
+            flex: 1;
+            padding: 5px 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        /* 細項區塊：在下方並縮排 */
+        .subitems {
+            margin-left: 40px;
+            margin-top: 5px;
+            display: none;
+            flex-direction: column;
+        }
+
+        .subitems input {
+            display: block;
+            margin-top: 4px;
+            width: 90%;
+            padding: 5px 10px;
+            font-size: 15px;
+            border: 1px solid #bbb;
+            border-radius: 6px;
         }
 
         .hidden {
@@ -47,41 +90,134 @@
             <button onclick="document.getElementById('fileInput').click()">📂 開啟舊檔</button>
             <button onclick="saveLocalFile()">💾 另存新檔</button>
         </div>
-
-        <div class="format-menu">
-            <label>字體大小：</label>
-            <input type="number" id="fontSize" value="16" min="10" max="40" onchange="updateFont()">
-            <button onclick="toggleBold()">B</button>
-        </div>
     </div>
 
-    <textarea id="editor" placeholder="在這裡輸入你的文字..."></textarea>
+    <div class="editor" id="editor"></div>
 
     <script>
         const editor = document.getElementById("editor");
 
-        function newFile() {
-            editor.value = "";
-        }
+        // 初始化：加入第一行
+        addNewLine();
 
-        // === 開啟本地檔案 ===
-        function openLocalFile(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // === 新增一行主項 ===
+        function addNewLine(value = "") {
+            const lineDiv = document.createElement("div");
+            lineDiv.className = "line";
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                editor.value = e.target.result;
+            const header = document.createElement("div");
+            header.className = "line-header";
+
+            const toggleBtn = document.createElement("button");
+            toggleBtn.textContent = "▶";
+            toggleBtn.onclick = function () {
+                toggleSubitems(lineDiv);
             };
-            reader.readAsText(file, "utf-8");
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.value = value;
+            input.placeholder = "輸入內容...";
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    addNewLineBelow(lineDiv);
+                }
+            });
+
+            header.appendChild(toggleBtn);
+            header.appendChild(input);
+            lineDiv.appendChild(header);
+
+            const subDiv = document.createElement("div");
+            subDiv.className = "subitems";
+            lineDiv.appendChild(subDiv);
+
+            editor.appendChild(lineDiv);
         }
 
-        // === 另存新檔 ===
+        // === 展開 / 收起細項 ===
+        function toggleSubitems(lineDiv) {
+            const btn = lineDiv.querySelector(".line-header button");
+            const subDiv = lineDiv.querySelector(".subitems");
+
+            if (subDiv.style.display === "flex") {
+                subDiv.style.display = "none";
+                btn.textContent = "▶";
+            } else {
+                subDiv.style.display = "flex";
+                btn.textContent = "▼";
+                if (subDiv.children.length === 0) addSubItem(subDiv);
+            }
+        }
+
+        // === 新增細項 ===
+        function addSubItem(subDiv) {
+            const subInput = document.createElement("input");
+            subInput.type = "text";
+            subInput.placeholder = "補充細項...";
+            subInput.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    addSubItem(subDiv);
+                }
+            });
+            subDiv.appendChild(subInput);
+        }
+
+        // === 在目前行的下方新增新行 ===
+        function addNewLineBelow(currentLine) {
+            const newLine = document.createElement("div");
+            newLine.className = "line";
+
+            const header = document.createElement("div");
+            header.className = "line-header";
+
+            const toggleBtn = document.createElement("button");
+            toggleBtn.textContent = "▶";
+            toggleBtn.onclick = function () {
+                toggleSubitems(newLine);
+            };
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.placeholder = "輸入內容...";
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    addNewLineBelow(newLine);
+                }
+            });
+
+            header.appendChild(toggleBtn);
+            header.appendChild(input);
+            newLine.appendChild(header);
+
+            const subDiv = document.createElement("div");
+            subDiv.className = "subitems";
+            newLine.appendChild(subDiv);
+
+            editor.insertBefore(newLine, currentLine.nextSibling);
+            input.focus();
+        }
+
+        // === 儲存 ===
         function saveLocalFile() {
-            const text = editor.value;
+            let text = "";
+            const lines = document.querySelectorAll(".line");
+
+            lines.forEach(line => {
+                const mainText = line.querySelector(".line-header input").value;
+                text += mainText + "\n";
+                const subInputs = line.querySelectorAll(".subitems input");
+                subInputs.forEach(sub => {
+                    text += "    - " + sub.value + "\n";
+                });
+            });
+
             const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
             const filename = prompt("請輸入檔名（不需加副檔名）", "新記事本") + ".txt";
-            if (filename === "null.txt") return; // 若按取消就不動作
+            if (filename === "null.txt") return;
 
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
@@ -90,13 +226,43 @@
             URL.revokeObjectURL(link.href);
         }
 
-        function updateFont() {
-            const size = document.getElementById("fontSize").value;
-            editor.style.fontSize = size + "px";
+        // === 開啟舊檔 ===
+        function openLocalFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                loadFromText(e.target.result);
+            };
+            reader.readAsText(file, "utf-8");
         }
 
-        function toggleBold() {
-            editor.style.fontWeight = editor.style.fontWeight === "bold" ? "normal" : "bold";
+        function loadFromText(text) {
+            editor.innerHTML = "";
+            const lines = text.split("\n");
+            let currentLine = null;
+
+            lines.forEach(line => {
+                if (line.startsWith("    - ")) {
+                    const subText = line.replace("    - ", "");
+                    const subDiv = currentLine.querySelector(".subitems");
+                    if (subDiv) {
+                        subDiv.style.display = "flex";
+                        currentLine.querySelector(".line-header button").textContent = "▼";
+                        addSubItem(subDiv);
+                        subDiv.lastChild.value = subText;
+                    }
+                } else if (line.trim() !== "") {
+                    addNewLine(line.trim());
+                    currentLine = editor.lastChild;
+                }
+            });
+        }
+
+        // === 新檔 ===
+        function newFile() {
+            editor.innerHTML = "";
+            addNewLine();
         }
     </script>
 </body>
