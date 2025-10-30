@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>本地記事本</title>
+    <style>
+        body {
+            font-family: "Noto Sans TC", sans-serif;
+            margin: 0;
+            background: #f5f5f5;
+        }
+
+        .menu-bar {
+            background: #333;
+            color: white;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .menu button {
+            margin-right: 10px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        textarea {
+            width: 100%;
+            height: 80vh;
+            font-size: 16px;
+            padding: 15px;
+            border: none;
+            resize: none;
+            outline: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-bar">
+        <div class="menu">
+            <button onclick="newFile()">📝 新檔</button>
+            <input type="file" id="fileInput" accept=".txt" class="hidden" onchange="openLocalFile(event)">
+            <button onclick="document.getElementById('fileInput').click()">📂 開啟舊檔</button>
+            <button onclick="saveLocalFile()">💾 另存新檔</button>
+        </div>
+
+        <div class="format-menu">
+            <label>字體大小：</label>
+            <input type="number" id="fontSize" value="16" min="10" max="40" onchange="updateFont()">
+            <button onclick="toggleBold()">B</button>
+        </div>
+    </div>
+
+    <textarea id="editor" placeholder="在這裡輸入你的文字..."></textarea>
+
+    <script>
+        const editor = document.getElementById("editor");
+
+        function newFile() {
+            editor.value = "";
+        }
+
+        // === 開啟本地檔案 ===
+        function openLocalFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                editor.value = e.target.result;
+            };
+            reader.readAsText(file, "utf-8");
+        }
+
+        // === 另存新檔 ===
+        function saveLocalFile() {
+            const text = editor.value;
+            const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+            const filename = prompt("請輸入檔名（不需加副檔名）", "新記事本") + ".txt";
+            if (filename === "null.txt") return; // 若按取消就不動作
+
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function updateFont() {
+            const size = document.getElementById("fontSize").value;
+            editor.style.fontSize = size + "px";
+        }
+
+        function toggleBold() {
+            editor.style.fontWeight = editor.style.fontWeight === "bold" ? "normal" : "bold";
+        }
+    </script>
+</body>
+</html>
